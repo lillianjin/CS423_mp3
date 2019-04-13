@@ -13,6 +13,8 @@
 #include <linux/spinlock.h>
 #include <linux/sched.h>
 #include "mp3_given.h"
+#include <linux/delay.h>
+
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Group_ID");
@@ -73,8 +75,8 @@ static void mp3_register(unsigned int pid) {
 
     printk(KERN_ALERT "TASK %u REGISTRATION MODULE LOADING\n", pid);
 
-    curr_task->task = find_task_by_pid(pid);
     curr_task->pid = pid;
+    curr_task->task = find_task_by_pid(curr_task->pid);
     curr_task->utilization = 0;
     curr_task->major_fault = 0;
     curr_task->minor_fault = 0;
@@ -105,6 +107,7 @@ static void mp3_deregister(unsigned int pid) {
 
     // remove work queue if the task size is 0
     if (list_empty(&my_head)){
+        cancel_delayed_work(&mp3_delayed_work);
         flush_workqueue(work_queue);
     }
 
@@ -127,6 +130,7 @@ static void mp3_work_function(struct work_struct *work){
         if (get_cpu_use(temp->pid, &minor_flt, &major_flt, &utilize, &ctime) == -1){
             continue;
         }
+
         printk(KERN_ALERT "TASK %d: %lu, %lu, %lu, %lu\n", temp->pid, minor_flt, major_flt, utilize, ctime);
 
         tot_minor_flt += minor_flt;
@@ -138,7 +142,8 @@ static void mp3_work_function(struct work_struct *work){
     // write to profiler buffer
 
     queue_delayed_work(work_queue, &mp3_delayed_work, delay);
-    
+    printk(KERN_ALERT "mp3_work_function FINISH WORKING");
+
 }
 
 /*
@@ -262,7 +267,7 @@ int __init mp3_init(void)
    spin_lock_init(&sp_lock);
 
    // Initialize workqueue
-    work_queue = create_workqueue("work_queue");
+   work_queue = create_workqueue("work_queue");
 
    printk(KERN_ALERT "MP3 MODULE LOADED\n");
    return 0;
@@ -285,10 +290,11 @@ void __exit mp3_exit(void)
     spin_unlock_irqrestore(&sp_lock, flags);
 
     // free work queue
-    if(!work_queue){
+    if(work_queue){
         flush_workqueue(work_queue);
         destroy_workqueue(work_queue);
         work_queue = NULL;
+        printk(KERN_ALERT "DELETED WORKQUEUE\n");
     }
     
 
