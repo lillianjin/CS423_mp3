@@ -50,6 +50,7 @@ static DEFINE_SPINLOCK(sp_lock);
 struct workqueue_struct *work_queue;
 // Declare delayed work
 unsigned long delay;
+static void work_handler(struct work_struct *work);
 DECLARE_DELAYED_WORK(mp3_delayed_work, work_handler);
 
 /*
@@ -112,7 +113,6 @@ static void mp3_register(unsigned int pid) {
     // create a new workqueue job if fist task enters
     if(flg){
         printk("Start creating a new workqueue job.\n");
-        struct work_struct *work = (struct work_struct *)kmalloc(sizeof(struct work_struct), GFP_KERNEL);
         queue_delayed_work(work_queue, &mp3_delayed_work, delay);
         printk("Complete creating a new workqueue job.\n");
     }
