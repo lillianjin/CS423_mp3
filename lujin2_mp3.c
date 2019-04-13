@@ -11,7 +11,7 @@
 #include <linux/timer.h>
 #include <linux/workqueue.h>
 #include <linux/spinlock.h>
-#include <linux/mutex.h>
+#include <linux/sched.h>
 #include "mp3_given.h"
 
 MODULE_LICENSE("GPL");
@@ -32,7 +32,11 @@ typedef struct mp3_task_struct {
     struct task_struct *task;
     struct list_head task_node;
     unsigned int pid;
+    unsigned long utilization;
+    unsigned long major_fault;
+    unsigned long minor_fault;
 } mp3_task_struct;
+
 
 // Declare proc filesystem entry
 static struct proc_dir_entry *proc_dir, *proc_entry;
@@ -40,6 +44,12 @@ static struct proc_dir_entry *proc_dir, *proc_entry;
 LIST_HEAD(my_head);
 // Define a spin lock
 static DEFINE_SPINLOCK(sp_lock);
+// Declare work queue
+struct workqueue_struct *work_queue;
+// Declare work function and delayed work
+static void mp3_work_function(struct work_struct *work);
+unsigned long delay;
+DECLARE_DELAYED_WORK(mp3_delayed_work, mp3_work_function);
 
 /*
 Find task struct by pid
@@ -57,34 +67,78 @@ mp3_task_struct* find_mptask_by_pid(unsigned long pid)
 
 static void mp3_register(unsigned int pid) {
     mp3_task_struct *curr_task = (mp3_task_struct *)kmalloc(sizeof(mp3_task_struct), GFP_KERNEL);
+    unsigned long flags; 
+    int flg = list_empty(&my_head);
+    printk("EMPTY FLAG: %d\n", flg);
+
     printk(KERN_ALERT "TASK %u REGISTRATION MODULE LOADING\n", pid);
 
     curr_task->task = find_task_by_pid(pid);
     curr_task->pid = pid;
-    set_task_state(curr_task->task, TASK_UNINTERRUPTIBLE);
+    curr_task->utilization = 0;
+    curr_task->major_fault = 0;
+    curr_task->minor_fault = 0;
 
     // add the task to task list
-    unsigned long flags; 
     spin_lock_irqsave(&sp_lock, flags);
     list_add(&(curr_task->task_node), &my_head);
+    // create a new workqueue job if fist task enters
+    if(flg){
+        printk("Start creating a new workqueue job.\n");
+        queue_delayed_work(work_queue, &mp3_delayed_work, delay);
+        printk("Complete creating a new workqueue job.\n");
+    }
     spin_unlock_irqrestore(&sp_lock, flags);
+
     printk(KERN_ALERT "TASK %u REGISTRATION MODULE LOADED\n", pid);
 }
 
 static void mp3_deregister(unsigned int pid) {
-    #ifdef DEBUG
-    printk(KERN_ALERT "TASK %u DEREGISTRATION MODULE LOADING\n", pid);
-    #endif
     mp3_task_struct *stop;
     unsigned long flags; 
+    printk(KERN_ALERT "TASK %u DEREGISTRATION MODULE LOADING\n", pid);
 
     spin_lock_irqsave(&sp_lock, flags);
     stop = find_mptask_by_pid(pid);
-    set_task_state(stop->task, TASK_UNINTERRUPTIBLE);
     list_del(&(stop->task_node));
     spin_unlock_irqrestore(&sp_lock, flags);
+
+    // remove work queue if the task size is 0
+    if (list_empty(&my_head)){
+        flush_workqueue(work_queue);
+    }
+
+    // free the task to stop
     kfree(stop);
+
     printk(KERN_ALERT "TASK %u DEREGISTRATION MODULE LOADED\n", pid);
+}
+
+static void mp3_work_function(struct work_struct *work){
+    unsigned long minor_flt, major_flt, utilize, ctime;
+    unsigned long tot_minor_flt = 0, tot_major_flt = 0, tot_ctime = 0;
+    mp3_task_struct *temp;
+    unsigned long flags; 
+
+    printk(KERN_ALERT "mp3_work_function START WORKING");
+
+    spin_lock_irqsave(&sp_lock, flags);
+    list_for_each_entry(temp, &my_head, task_node) {
+        if (get_cpu_use(temp->pid, &minor_flt, &major_flt, &utilize, &ctime) == -1){
+            continue;
+        }
+        printk(KERN_ALERT "TASK %d: %lu, %lu, %lu, %lu\n", temp->pid, minor_flt, major_flt, utilize, ctime);
+
+        tot_minor_flt += minor_flt;
+        tot_major_flt += major_flt;
+        tot_ctime += utilize + ctime;
+    }
+    spin_unlock_irqrestore(&sp_lock, flags);
+
+    // write to profiler buffer
+
+    queue_delayed_work(work_queue, &mp3_delayed_work, delay);
+    
 }
 
 /*
@@ -207,6 +261,9 @@ int __init mp3_init(void)
    // init spin lock
    spin_lock_init(&sp_lock);
 
+   // Initialize workqueue
+    work_queue = create_workqueue("work_queue");
+
    printk(KERN_ALERT "MP3 MODULE LOADED\n");
    return 0;
 }
@@ -226,6 +283,14 @@ void __exit mp3_exit(void)
         list_del(&pos->task_node);
     }
     spin_unlock_irqrestore(&sp_lock, flags);
+
+    // free work queue
+    if(!work_queue){
+        flush_workqueue(work_queue);
+        destroy_workqueue(work_queue);
+        work_queue = NULL;
+    }
+    
 
     /*
     remove /proc/mp3/status and /proc/mp3 using remove_proc_entry(*name, *parent)
