@@ -21,6 +21,9 @@ MODULE_DESCRIPTION("CS-423 MP3");
 #define DEBUG 1
 #define DIRECTORY "mp3"
 #define FILENAME "status"
+#define REGISTRATION 'R'
+#define DEREGISTRATION 'D'
+
 
 /*
 Define a structure to represent Process Control Block
@@ -31,10 +34,58 @@ typedef struct mp3_task_struct {
     unsigned int pid;
 } mp3_task_struct;
 
+// Declare proc filesystem entry
+static struct proc_dir_entry *proc_dir, *proc_entry;
 // Create a list head
 LIST_HEAD(my_head);
 // Define a spin lock
 static DEFINE_SPINLOCK(sp_lock);
+
+/*
+Find task struct by pid
+*/
+mp3_task_struct* find_mptask_by_pid(unsigned long pid)
+{
+    mp3_task_struct* task;
+    list_for_each_entry(task, &my_head, task_node) {
+        if(task->pid == pid){
+            return task;
+        }
+    }
+    return NULL;
+}
+
+static void mp3_register(unsigned int pid) {
+    mp3_task_struct *curr_task = (mp3_task_struct *)kmalloc(sizeof(mp3_task_struct), GFP_KERNEL);
+    printk(KERN_ALERT "TASK %u REGISTRATION MODULE LOADING\n", pid);
+
+    curr_task->task = find_task_by_pid(pid);
+    curr_task->pid = pid;
+    set_task_state(curr_task->task, TASK_UNINTERRUPTIBLE);
+
+    // add the task to task list
+    unsigned long flags; 
+    spin_lock_irqsave(&sp_lock, flags);
+    list_add(&(curr_task->task_node), &my_head);
+    spin_unlock_irqrestore(&sp_lock, flags);
+    printk(KERN_ALERT "TASK %u REGISTRATION MODULE LOADED\n", pid);
+}
+
+static void mp3_deregister(unsigned int pid) {
+    #ifdef DEBUG
+    printk(KERN_ALERT "TASK %u DEREGISTRATION MODULE LOADING\n", pid);
+    #endif
+    mp3_task_struct *stop;
+    unsigned long flags; 
+
+    spin_lock_irqsave(&sp_lock, flags);
+    stop = find_mptask_by_pid(pid);
+    set_task_state(stop->task, TASK_UNINTERRUPTIBLE);
+    list_del(&(stop->task_node));
+    spin_unlock_irqrestore(&sp_lock, flags);
+    kfree(stop);
+    printk(KERN_ALERT "TASK %u DEREGISTRATION MODULE LOADED\n", pid);
+}
 
 /*
 This function is called then the /proc file is read
@@ -115,12 +166,12 @@ ssize_t mp3_write (struct file *filp, const char __user *buf, size_t count, loff
         switch (buffer[0])
         {
             case REGISTRATION:
-                sscanf(buffer + 3, "%u\n", &pid);
-                mp2_register(pid);
+                sscanf(buffer + 2, "%u\n", &pid);
+                mp3_register(pid);
                 break;
             case DEREGISTRATION:
-                sscanf(buffer + 3, "%u\n", &pid);
-                mp2_deregister(pid);
+                sscanf(buffer + 2, "%u\n", &pid);
+                mp3_deregister(pid);
                 break;
             default:
                 kfree(buffer);
@@ -128,7 +179,7 @@ ssize_t mp3_write (struct file *filp, const char __user *buf, size_t count, loff
         }
     }
 
-    // printk(KERN_ALERT "I AM WRITING: %s, parse results: pid %u, period %u, process_time %lu\n", buffer, pid, period, process_time);
+    printk(KERN_ALERT "I AM WRITING: %s, parse results: pid %u\n", buffer, pid);
 
     kfree(buffer);
     return count;
@@ -145,10 +196,7 @@ static const struct file_operations file_fops = {
 // mp3_init - Called when module is loaded
 int __init mp3_init(void)
 {
-   #ifdef DEBUG
    printk(KERN_ALERT "MP3 MODULE LOADING\n");
-   #endif
-   // Insert your code here ...
 
    //Create proc directory "/proc/mp3/" using proc_dir(dir, parent)
    proc_dir = proc_mkdir(DIRECTORY, NULL);
@@ -158,6 +206,7 @@ int __init mp3_init(void)
    
    // init spin lock
    spin_lock_init(&sp_lock);
+
    printk(KERN_ALERT "MP3 MODULE LOADED\n");
    return 0;
 }
@@ -166,18 +215,15 @@ int __init mp3_init(void)
 // mp3_exit - Called when module is unloaded
 void __exit mp3_exit(void)
 {
-   #ifdef DEBUG
-   printk(KERN_ALERT "MP3 MODULE UNLOADING\n");
-   #endif
-   // Insert your code here ...
     mp3_task_struct *pos, *next;
     unsigned long flags; 
+
+    printk(KERN_ALERT "MP3 MODULE UNLOADING\n");
 
     spin_lock_irqsave(&sp_lock, flags);
     // Free the task struct list
     list_for_each_entry_safe(pos, next, &my_head, task_node) {
         list_del(&pos->task_node);
-        kfree(pos);
     }
     spin_unlock_irqrestore(&sp_lock, flags);
 
