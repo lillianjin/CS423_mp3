@@ -48,10 +48,9 @@ LIST_HEAD(my_head);
 static DEFINE_SPINLOCK(sp_lock);
 // Declare work queue
 struct workqueue_struct *work_queue;
-// Declare work function and delayed work
-static void mp3_work_function(struct work_struct *work);
+// Declare delayed work
 unsigned long delay;
-DECLARE_DELAYED_WORK(mp3_delayed_work, mp3_work_function);
+DECLARE_DELAYED_WORK(mp3_delayed_work, work_handler);
 
 /*
 Find task struct by pid
@@ -65,6 +64,32 @@ mp3_task_struct* find_mptask_by_pid(unsigned long pid)
         }
     }
     return NULL;
+}
+
+static void work_handler(struct work_struct *work){
+    unsigned long minor_flt, major_flt, utilize, ctime;
+    unsigned long tot_minor_flt = 0, tot_major_flt = 0, tot_ctime = 0;
+    mp3_task_struct *temp;
+    unsigned long flags; 
+
+    printk(KERN_ALERT "WORK HANDLER START WORKING");
+
+    spin_lock_irqsave(&sp_lock, flags);
+    list_for_each_entry(temp, &my_head, task_node) {
+        printk(KERN_ALERT "TASK %d: %lu, %lu, %lu, %lu\n", temp->pid, minor_flt, major_flt, utilize, ctime);
+        if (get_cpu_use(temp->pid, &minor_flt, &major_flt, &utilize, &ctime) != -1){
+            tot_minor_flt += minor_flt;
+            tot_major_flt += major_flt;
+            tot_ctime += utilize + ctime;        
+        }
+        
+    }
+    spin_unlock_irqrestore(&sp_lock, flags);
+
+    // write to profiler buffer
+
+    queue_delayed_work(work_queue, &mp3_delayed_work, delay);
+    printk(KERN_ALERT "WORK HANDLER FINISH WORKING");
 }
 
 static void mp3_register(unsigned int pid) {
@@ -87,6 +112,7 @@ static void mp3_register(unsigned int pid) {
     // create a new workqueue job if fist task enters
     if(flg){
         printk("Start creating a new workqueue job.\n");
+        struct work_struct *work = (struct work_struct *)kmalloc(sizeof(struct work_struct), GFP_KERNEL);
         queue_delayed_work(work_queue, &mp3_delayed_work, delay);
         printk("Complete creating a new workqueue job.\n");
     }
@@ -107,7 +133,7 @@ static void mp3_deregister(unsigned int pid) {
 
     // remove work queue if the task size is 0
     if (list_empty(&my_head)){
-        cancel_delayed_work(&mp3_delayed_work);
+        cancel_delayed_work_sync(&mp3_delayed_work);
         flush_workqueue(work_queue);
     }
 
@@ -117,34 +143,7 @@ static void mp3_deregister(unsigned int pid) {
     printk(KERN_ALERT "TASK %u DEREGISTRATION MODULE LOADED\n", pid);
 }
 
-static void mp3_work_function(struct work_struct *work){
-    unsigned long minor_flt, major_flt, utilize, ctime;
-    unsigned long tot_minor_flt = 0, tot_major_flt = 0, tot_ctime = 0;
-    mp3_task_struct *temp;
-    unsigned long flags; 
 
-    printk(KERN_ALERT "mp3_work_function START WORKING");
-
-    spin_lock_irqsave(&sp_lock, flags);
-    list_for_each_entry(temp, &my_head, task_node) {
-        if (get_cpu_use(temp->pid, &minor_flt, &major_flt, &utilize, &ctime) == -1){
-            continue;
-        }
-
-        printk(KERN_ALERT "TASK %d: %lu, %lu, %lu, %lu\n", temp->pid, minor_flt, major_flt, utilize, ctime);
-
-        tot_minor_flt += minor_flt;
-        tot_major_flt += major_flt;
-        tot_ctime += utilize + ctime;
-    }
-    spin_unlock_irqrestore(&sp_lock, flags);
-
-    // write to profiler buffer
-
-    queue_delayed_work(work_queue, &mp3_delayed_work, delay);
-    printk(KERN_ALERT "mp3_work_function FINISH WORKING");
-
-}
 
 /*
 This function is called then the /proc file is read
