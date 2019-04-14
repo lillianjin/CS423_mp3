@@ -82,7 +82,7 @@ static void work_handler(struct work_struct *work){
     spin_lock_irqsave(&sp_lock, flags);
     list_for_each_entry(temp, &my_head, task_node) {
         printk(KERN_ALERT "TASK %d: minor_flt %lu, major_flt %lu, utilize %lu, ctime %lu\n", temp->pid, minor_flt, major_flt, utilize, ctime);
-        if (get_cpu_use(temp->pid, &minor_flt, &major_flt, &utilize, &ctime) != -1){
+        if (get_cpu_use((int)temp->pid, &minor_flt, &major_flt, &utilize, &ctime) != -1){
             tot_minor_flt += minor_flt;
             tot_major_flt += major_flt;
             tot_ctime += utilize + ctime;  
