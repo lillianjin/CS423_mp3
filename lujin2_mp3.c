@@ -86,6 +86,7 @@ static void work_handler(struct work_struct *work){
             tot_minor_flt += minor_flt;
             tot_major_flt += major_flt;
             tot_ctime += utilize + ctime;  
+            printk(KERN_ALERT "utilize + ctime is %lu, tot_ctime is %lu\n", utilize + ctime, tot_ctime);      
             printk(KERN_ALERT "ADDED TO TOTAL: jiffies %lu, tot_minor_flt %lu, tot_major_flt %lu, tot_ctime %lu\n", jiffies, tot_minor_flt, tot_major_flt, tot_ctime);      
         }
     }
