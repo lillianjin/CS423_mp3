@@ -248,7 +248,7 @@ ssize_t mp3_write (struct file *filp, const char __user *buf, size_t count, loff
         }
     }
 
-    printk(KERN_ALERT "I AM WRITING: %s, parse results: pid %u\n", buffer, pid);
+    printk(KERN_ALERT "I AM WRITING: pid %u\n", buffer, pid);
 
     kfree(buffer);
     return count;
@@ -261,6 +261,58 @@ static const struct file_operations file_fops = {
     .read  = mp3_read,
 };
 
+
+// function in character device driver
+static int mp3_open(struct inode *inode, struct file *file){
+    printk(KERN_INFO "CDD OPEN\n");
+    return 0;
+}
+
+static int mp3_release(struct inode *inode, struct file *file){
+    printk(KERN_INFO "CDD CLOSED\n");
+    return 0;
+}
+
+static int mp3_mmap(struct file *file, struct vm_area_struct *vm_area){
+    int count = 0;
+    unsigned long pfn;
+    unsigned long length = (unsigned long)(vm_area->vm_end - vm_area->vm_start);
+    unsigned long vm_start = (unsigned long)(vm_area->vm_start);
+    unsigned long virt_addr = mem_buffer;
+
+    printk(KERN_INFO "CDD MMAP BEGINS\n");
+
+    //check if the userspace is beyong the buffer size
+    if(length > PAGE_NUM * PAGE_SIZE){
+        printk(KERN_INFO "BUFFER LENGTH EXCEEDED");
+        return -EIO;
+    }
+
+    //map each pages of the buffer into virtual memory
+    while(length > 0){
+        // get page frame number
+        pfn = vmalloc_to_pfn(virt_addr);
+        if(remap_pfn_range(vm_area, vm_start + count * PAGE_SIZE, pfn, PAGE_SIZE, PAGE_SHARED)){
+            printk(KERN_INFO "REMAPPING FAILED\n");
+            return -1;
+        }
+        printk(KERN_INFO "REMAPPING SUCCESSED\n");
+        count++;
+        virt_addr += PAGE_SIZE;
+        length -= PAGE_SIZE;
+    }
+    printk(KERN_INFO "CDD MMAP FINISHED\n");
+
+    return 0;
+}
+
+// Declare the character device driver
+static const struct file_operations file_fops = {
+    .owner = THIS_MODULE,
+    .open = mp3_open,
+    .release = mp3_release,
+    .mmap = mp3_mmap,
+};
 
 // mp3_init - Called when module is loaded
 int __init mp3_init(void)
