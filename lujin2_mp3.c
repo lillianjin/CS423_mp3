@@ -12,9 +12,10 @@
 #include <linux/workqueue.h>
 #include <linux/spinlock.h>
 #include <linux/sched.h>
-#include "mp3_given.h"
 #include <linux/delay.h>
-
+#include <linux/vmalloc.h>
+#include <linux/cdev.h>
+#include "mp3_given.h"
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Group_ID");
@@ -26,7 +27,6 @@ MODULE_DESCRIPTION("CS-423 MP3");
 #define REGISTRATION 'R'
 #define DEREGISTRATION 'D'
 #define PAGE_NUM 128
-#define PAGE_SIZE 128
 
 /*
 Define a structure to represent Process Control Block
@@ -257,6 +257,7 @@ static const struct file_operations file_fops = {
 // mp3_init - Called when module is loaded
 int __init mp3_init(void)
 {
+    mem_buffer = (unsigned long *)vmalloc(PAGE_NUM * PAGE_SIZE);
     printk(KERN_ALERT "MP3 MODULE LOADING\n");
 
     //Create proc directory "/proc/mp3/" using proc_dir(dir, parent)
@@ -272,7 +273,6 @@ int __init mp3_init(void)
     work_queue = create_workqueue("work_queue");
 
     // allocate the shared memory buffer
-    mem_buffer = (unsigned long *)vmalloc(PAGE_NUM * PAGE_SIZE);
     memset(mem_buffer, 0, PAGE_NUM * PAGE_SIZE);
 
     printk(KERN_ALERT "MP3 MODULE LOADED\n");
