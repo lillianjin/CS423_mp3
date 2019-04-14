@@ -338,6 +338,10 @@ int __init mp3_init(void)
     // allocate the shared memory buffer
     memset(mem_buffer, 0, PAGE_NUM * PAGE_SIZE);
 
+    //allocate CDD number range
+	alloc_chrdev_region(&mp3_cdev_num, 0, 1, "mp3_cdev");	
+	mp3_cdev = cdev_alloc();
+
     // initialize CDD
     cdev_init(mp3_cdev, &mmap_fops);
 	cdev_add(mp3_cdev, mp3_cdev_num, 1);
