@@ -16,6 +16,8 @@
 #include <linux/vmalloc.h>
 #include <linux/cdev.h>
 #include "mp3_given.h"
+#include <linux/mm.h>
+
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Group_ID");
@@ -57,8 +59,7 @@ DECLARE_DELAYED_WORK(mp3_delayed_work, work_handler);
 unsigned long * mem_buffer;
 int mem_index;
 // Declare character device driver
-struct cdev mp3_cdev;
-// Declare major number
+static struct cdev *mp3_cdev;
 static dev_t mp3_cdev_num;
 
 /*
@@ -252,7 +253,7 @@ ssize_t mp3_write (struct file *filp, const char __user *buf, size_t count, loff
         }
     }
 
-    printk(KERN_ALERT "I AM WRITING: pid %u\n", buffer, pid);
+    printk(KERN_ALERT "I AM WRITING: pid %u\n", pid);
 
     kfree(buffer);
     return count;
@@ -338,7 +339,7 @@ int __init mp3_init(void)
     memset(mem_buffer, 0, PAGE_NUM * PAGE_SIZE);
 
     // initialize CDD
-    cdev_init(&mp3_cdev, &mmap_fops);
+    cdev_init(mp3_cdev, &mmap_fops);
 	cdev_add(mp3_cdev, mp3_cdev_num, 1);
 
     printk(KERN_ALERT "MP3 MODULE LOADED\n");
