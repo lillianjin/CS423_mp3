@@ -56,6 +56,10 @@ DECLARE_DELAYED_WORK(mp3_delayed_work, work_handler);
 // Declare memory buffer
 unsigned long * mem_buffer;
 int mem_index;
+// Declare character device driver
+struct cdev mp3_cdev;
+// Declare major number
+static dev_t mp3_cdev_num;
 
 /*
 Find task struct by pid
@@ -278,7 +282,6 @@ static int mp3_mmap(struct file *file, struct vm_area_struct *vm_area){
     unsigned long pfn;
     unsigned long length = (unsigned long)(vm_area->vm_end - vm_area->vm_start);
     unsigned long vm_start = (unsigned long)(vm_area->vm_start);
-    unsigned long virt_addr = mem_buffer;
 
     printk(KERN_INFO "CDD MMAP BEGINS\n");
 
@@ -291,14 +294,13 @@ static int mp3_mmap(struct file *file, struct vm_area_struct *vm_area){
     //map each pages of the buffer into virtual memory
     while(length > 0){
         // get page frame number
-        pfn = vmalloc_to_pfn(virt_addr);
+        pfn = vmalloc_to_pfn((char *)(mem_buffer) + count * PAGE_SIZE);
         if(remap_pfn_range(vm_area, vm_start + count * PAGE_SIZE, pfn, PAGE_SIZE, PAGE_SHARED)){
             printk(KERN_INFO "REMAPPING FAILED\n");
             return -1;
         }
         printk(KERN_INFO "REMAPPING SUCCESSED\n");
         count++;
-        virt_addr += PAGE_SIZE;
         length -= PAGE_SIZE;
     }
     printk(KERN_INFO "CDD MMAP FINISHED\n");
@@ -307,7 +309,7 @@ static int mp3_mmap(struct file *file, struct vm_area_struct *vm_area){
 }
 
 // Declare the character device driver
-static const struct file_operations file_fops = {
+static const struct file_operations mmap_fops = {
     .owner = THIS_MODULE,
     .open = mp3_open,
     .release = mp3_release,
@@ -334,6 +336,10 @@ int __init mp3_init(void)
 
     // allocate the shared memory buffer
     memset(mem_buffer, 0, PAGE_NUM * PAGE_SIZE);
+
+    // initialize CDD
+    cdev_init(&mp3_cdev, &mmap_fops);
+	cdev_add(mp3_cdev, mp3_cdev_num, 1);
 
     printk(KERN_ALERT "MP3 MODULE LOADED\n");
     return 0;
@@ -365,6 +371,10 @@ void __exit mp3_exit(void)
     
     //free memory buffer
     vfree(mem_buffer);
+
+    // destroy character device
+    cdev_del(&mp3_cdev);
+    unregister_chrdev_region(mp3_dev, 1);
 
     /*
     remove /proc/mp3/status and /proc/mp3 using remove_proc_entry(*name, *parent)
