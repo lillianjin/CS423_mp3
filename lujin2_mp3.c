@@ -55,6 +55,7 @@ static void work_handler(struct work_struct *work);
 DECLARE_DELAYED_WORK(mp3_delayed_work, work_handler);
 // Declare memory buffer
 unsigned long * mem_buffer;
+int mem_index;
 
 /*
 Find task struct by pid
@@ -86,11 +87,16 @@ static void work_handler(struct work_struct *work){
             tot_major_flt += major_flt;
             tot_ctime += utilize + ctime;        
         }
-        
     }
     spin_unlock_irqrestore(&sp_lock, flags);
 
     // write to profiler buffer
+    printk(KERN_ALERT "START WRITING TO MEM BUFFER: %lu, %lu, %lu, %lu\n", jiffies, tot_minor_flt, tot_major_flt, tot_ctime);
+    mem_buffer[mem_index] = jiffies;
+    mem_buffer[mem_index++] = tot_minor_flt;
+    mem_buffer[mem_index++] = tot_major_flt;
+    mem_buffer[mem_index++] = tot_ctime;
+    printk(KERN_ALERT "FINISHED WRITING TO MEM BUFFER: index is %d ", mem_index);
 
     queue_delayed_work(work_queue, &mp3_delayed_work, delay);
     printk(KERN_ALERT "WORK HANDLER FINISH WORKING");
