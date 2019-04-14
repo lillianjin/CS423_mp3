@@ -25,7 +25,8 @@ MODULE_DESCRIPTION("CS-423 MP3");
 #define FILENAME "status"
 #define REGISTRATION 'R'
 #define DEREGISTRATION 'D'
-
+#define PAGE_NUM 128
+#define PAGE_SIZE 128
 
 /*
 Define a structure to represent Process Control Block
@@ -52,6 +53,8 @@ struct workqueue_struct *work_queue;
 unsigned long delay;
 static void work_handler(struct work_struct *work);
 DECLARE_DELAYED_WORK(mp3_delayed_work, work_handler);
+// Declare memory buffer
+unsigned long * mem_buffer;
 
 /*
 Find task struct by pid
@@ -254,22 +257,26 @@ static const struct file_operations file_fops = {
 // mp3_init - Called when module is loaded
 int __init mp3_init(void)
 {
-   printk(KERN_ALERT "MP3 MODULE LOADING\n");
+    printk(KERN_ALERT "MP3 MODULE LOADING\n");
 
-   //Create proc directory "/proc/mp3/" using proc_dir(dir, parent)
-   proc_dir = proc_mkdir(DIRECTORY, NULL);
+    //Create proc directory "/proc/mp3/" using proc_dir(dir, parent)
+    proc_dir = proc_mkdir(DIRECTORY, NULL);
 
-   //Create file entry "/proc/mp3/status/" using proc_create(name, mode, parent, proc_fops)
-   proc_entry = proc_create(FILENAME, 0666, proc_dir, &file_fops);
-   
-   // init spin lock
-   spin_lock_init(&sp_lock);
+    //Create file entry "/proc/mp3/status/" using proc_create(name, mode, parent, proc_fops)
+    proc_entry = proc_create(FILENAME, 0666, proc_dir, &file_fops);
+    
+    // init spin lock
+    spin_lock_init(&sp_lock);
 
-   // Initialize workqueue
-   work_queue = create_workqueue("work_queue");
+    // Initialize workqueue
+    work_queue = create_workqueue("work_queue");
 
-   printk(KERN_ALERT "MP3 MODULE LOADED\n");
-   return 0;
+    // allocate the shared memory buffer
+    mem_buffer = (unsigned long *)vmalloc(PAGE_NUM * PAGE_SIZE);
+    memset(mem_buffer, 0, PAGE_NUM * PAGE_SIZE);
+
+    printk(KERN_ALERT "MP3 MODULE LOADED\n");
+    return 0;
 }
 
 
@@ -296,6 +303,8 @@ void __exit mp3_exit(void)
         printk(KERN_ALERT "DELETED WORKQUEUE\n");
     }
     
+    //free memory buffer
+    vfree(mem_buffer);
 
     /*
     remove /proc/mp3/status and /proc/mp3 using remove_proc_entry(*name, *parent)
