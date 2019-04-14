@@ -81,18 +81,19 @@ static void work_handler(struct work_struct *work){
 
     spin_lock_irqsave(&sp_lock, flags);
     list_for_each_entry(temp, &my_head, task_node) {
-        printk(KERN_ALERT "TASK %d: %lu, %lu, %lu, %lu\n", temp->pid, minor_flt, major_flt, utilize, ctime);
+        printk(KERN_ALERT "TASK %d: minor_flt %lu, major_flt %lu, utilize %lu, ctime %lu\n", temp->pid, minor_flt, major_flt, utilize, ctime);
         if (get_cpu_use(temp->pid, &minor_flt, &major_flt, &utilize, &ctime) != -1){
             tot_minor_flt += minor_flt;
             tot_major_flt += major_flt;
-            tot_ctime += utilize + ctime;        
+            tot_ctime += utilize + ctime;  
+            printk(KERN_ALERT "ADDED TO TOTAL: jiffies %lu, tot_minor_flt %lu, tot_major_flt %lu, tot_ctime %lu\n", jiffies, tot_minor_flt, tot_major_flt, tot_ctime);      
         }
     }
     spin_unlock_irqrestore(&sp_lock, flags);
 
     // write to profiler buffer
     printk(KERN_ALERT "START WRITING TO MEM BUFFER: %lu, %lu, %lu, %lu\n", jiffies, tot_minor_flt, tot_major_flt, tot_ctime);
-    mem_buffer[mem_index] = jiffies;
+    mem_buffer[mem_index++] = jiffies;
     mem_buffer[mem_index++] = tot_minor_flt;
     mem_buffer[mem_index++] = tot_major_flt;
     mem_buffer[mem_index++] = tot_ctime;
