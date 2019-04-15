@@ -389,7 +389,7 @@ void __exit mp3_exit(void)
     // destroy character device
     // unregister_chrdev_region(mp3_cdev_num, 1);
     // cdev_del(mp3_cdev);
-    unregister_chrdev(major,"mp3_chrdev");
+    // unregister_chrdev(major,"mp3_chrdev");
 
     /*
     remove /proc/mp3/status and /proc/mp3 using remove_proc_entry(*name, *parent)
