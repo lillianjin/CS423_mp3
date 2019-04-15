@@ -109,7 +109,7 @@ static void work_handler(struct work_struct *work){
     spin_unlock_irqrestore(&sp_lock, flags);
 
     if (mem_index >= PAGE_NUM * PAGE_SIZE / sizeof(unsigned long)) {
-        mem_index = -1;
+        mem_index = 0;
     }
     queue_delayed_work(work_queue, &mp3_delayed_work, delay);
     printk(KERN_ALERT "WORK HANDLER FINISH WORKING");
@@ -137,7 +137,7 @@ static void mp3_register(unsigned int pid) {
         printk("Start creating a new workqueue job.\n");
         // allocate the shared memory buffer
         memset(mem_buffer, -1, PAGE_NUM * PAGE_SIZE);
-        mem_index = -1;
+        mem_index = 0;
         queue_delayed_work(work_queue, &mp3_delayed_work, delay);
         printk("Complete creating a new workqueue job.\n");
     }
@@ -346,7 +346,7 @@ int __init mp3_init(void)
     delay = msecs_to_jiffies(1000/20);
 
     // allocate the shared memory buffer
-    mem_index = -1;
+    mem_index = 0;
     memset(mem_buffer, -1, PAGE_NUM * PAGE_SIZE);
 
     // //allocate CDD number range
