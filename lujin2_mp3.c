@@ -329,6 +329,7 @@ static const struct file_operations mmap_fops = {
 // mp3_init - Called when module is loaded
 int __init mp3_init(void)
 {
+    int i = 0;
     mem_buffer = (unsigned long *)vmalloc(PAGE_NUM * PAGE_SIZE);
     printk(KERN_ALERT "MP3 MODULE LOADING\n");
 
@@ -348,6 +349,11 @@ int __init mp3_init(void)
     // allocate the shared memory buffer
     mem_index = 0;
     memset(mem_buffer, -1, PAGE_NUM * PAGE_SIZE);
+
+    while (i < PAGE_NUM * PAGE_SIZE) {
+        SetPageReserved(vmalloc_to_page((void *)(mem_buffer + i)));
+        i += PAGE_SIZE;
+    }
 
     // //allocate CDD number range
 	// alloc_chrdev_region(&mp3_cdev_num, 0, 1, "mp3_cdev");	
