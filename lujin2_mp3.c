@@ -352,7 +352,7 @@ int __init mp3_init(void)
     // cdev_init(mp3_cdev, &mmap_fops);
     // printk(KERN_ALERT "5555555555555\n");
 	// cdev_add(mp3_cdev, mp3_cdev_num, 1);
-    major = register_chrdev(0, "mp3_chrdev", &mmap_fops);
+    // major = register_chrdev(0, "mp3_chrdev", &mmap_fops);
     printk(KERN_ALERT "major is %d\n", major);
 
     printk(KERN_ALERT "MP3 MODULE LOADED\n");
