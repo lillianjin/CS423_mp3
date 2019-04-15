@@ -294,6 +294,7 @@ static int mp3_mmap(struct file *file, struct vm_area_struct *vm_area){
 
     //map each pages of the buffer into virtual memory
     while(length > 0){
+        printk(KERN_INFO "MAPPING FOR PAGE %d BEGINS\n", count);
         // get page frame number
         pfn = vmalloc_to_pfn((char *)(mem_buffer) + count * PAGE_SIZE);
         if(remap_pfn_range(vm_area, vm_start + count * PAGE_SIZE, pfn, PAGE_SIZE, PAGE_SHARED)){
