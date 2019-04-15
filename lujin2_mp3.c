@@ -91,12 +91,14 @@ static void work_handler(struct work_struct *work){
             tot_minor_flt += minor_flt;
             tot_major_flt += major_flt;
             tot_ctime += utilize + ctime;  
-            printk(KERN_ALERT "utilize + ctime is %lu, tot_ctime is %lu\n", utilize + ctime, tot_ctime);      
             printk(KERN_ALERT "ADDED TO TOTAL: jiffies %lu, tot_minor_flt %lu, tot_major_flt %lu, tot_ctime %lu\n", jiffies, tot_minor_flt, tot_major_flt, tot_ctime);      
+        } else {
+            printk(KERN_ALERT "PID NOT FOUND %d\n",temp->pid);
         }
     }
     spin_unlock_irqrestore(&sp_lock, flags);
-
+    
+    spin_lock_irqsave(&sp_lock, flags);
     // write to profiler buffer
     printk(KERN_ALERT "START WRITING TO MEM BUFFER: %lu, %lu, %lu, %lu\n", jiffies, tot_minor_flt, tot_major_flt, tot_ctime);
     mem_buffer[mem_index++] = jiffies;
@@ -104,6 +106,7 @@ static void work_handler(struct work_struct *work){
     mem_buffer[mem_index++] = tot_major_flt;
     mem_buffer[mem_index++] = tot_ctime;
     printk(KERN_ALERT "FINISHED WRITING TO MEM BUFFER: index is %d ", mem_index);
+    spin_unlock_irqrestore(&sp_lock, flags);
 
     queue_delayed_work(work_queue, &mp3_delayed_work, delay);
     printk(KERN_ALERT "WORK HANDLER FINISH WORKING");
@@ -296,7 +299,7 @@ static int mp3_mmap(struct file *file, struct vm_area_struct *vm_area){
     while(length > 0){
         printk(KERN_INFO "MAPPING FOR PAGE %d BEGINS\n", count);
         // get page frame number
-        pfn = vmalloc_to_pfn((char *)(mem_buffer) + count * PAGE_SIZE);
+        pfn = vmalloc_to_pfn((void *)mem_buffer + count * PAGE_SIZE);
         if(remap_pfn_range(vm_area, vm_start + count * PAGE_SIZE, pfn, PAGE_SIZE, PAGE_SHARED)){
             printk(KERN_INFO "REMAPPING FAILED\n");
             return -1;
@@ -306,7 +309,6 @@ static int mp3_mmap(struct file *file, struct vm_area_struct *vm_area){
         length -= PAGE_SIZE;
     }
     printk(KERN_INFO "CDD MMAP FINISHED\n");
-
     return 0;
 }
 
@@ -335,22 +337,17 @@ int __init mp3_init(void)
 
     // Initialize workqueue
     work_queue = create_workqueue("work_queue");
-    delay = msecs_to_jiffies(50);
-    printk(KERN_ALERT "11111111111111\n");
+    delay = msecs_to_jiffies(1000/20);
 
     // allocate the shared memory buffer
-    memset(mem_buffer, -1, PAGE_NUM * PAGE_SIZE);
-    printk(KERN_ALERT "222222222222\n");
+    memset(mem_buffer, 0, PAGE_NUM * PAGE_SIZE);
 
     // //allocate CDD number range
 	// alloc_chrdev_region(&mp3_cdev_num, 0, 1, "mp3_cdev");	
-    // printk(KERN_ALERT "3333333333333\n");
 	// mp3_cdev = cdev_alloc();
-    // printk(KERN_ALERT "444444444444444\n");
 
     // initialize CDD
     // cdev_init(mp3_cdev, &mmap_fops);
-    // printk(KERN_ALERT "5555555555555\n");
 	// cdev_add(mp3_cdev, mp3_cdev_num, 1);
     major = register_chrdev(0, "mp3_chrdev", &mmap_fops);
     printk(KERN_ALERT "major is %d\n", major);
@@ -377,6 +374,7 @@ void __exit mp3_exit(void)
 
     // free work queue
     if(work_queue){
+        cancel_delayed_work(&mp3_delayed_work);
         flush_workqueue(work_queue);
         destroy_workqueue(work_queue);
         work_queue = NULL;
