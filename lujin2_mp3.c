@@ -132,6 +132,8 @@ static void mp3_register(unsigned int pid) {
     // create a new workqueue job if fist task enters
     if(flg){
         printk("Start creating a new workqueue job.\n");
+        // allocate the shared memory buffer
+        memset(mem_buffer, -1, PAGE_NUM * PAGE_SIZE);
         queue_delayed_work(work_queue, &mp3_delayed_work, delay);
         printk("Complete creating a new workqueue job.\n");
     }
@@ -340,7 +342,7 @@ int __init mp3_init(void)
     delay = msecs_to_jiffies(1000/20);
 
     // allocate the shared memory buffer
-    memset(mem_buffer, 0, PAGE_NUM * PAGE_SIZE);
+    memset(mem_buffer, -1, PAGE_NUM * PAGE_SIZE);
 
     // //allocate CDD number range
 	// alloc_chrdev_region(&mp3_cdev_num, 0, 1, "mp3_cdev");	
