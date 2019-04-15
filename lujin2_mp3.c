@@ -57,7 +57,7 @@ static void work_handler(struct work_struct *work);
 DECLARE_DELAYED_WORK(mp3_delayed_work, work_handler);
 // Declare memory buffer
 unsigned long * mem_buffer;
-int mem_index=0;
+int mem_index;
 // Declare character device driver
 // static struct cdev *mp3_cdev;
 int major = 0;
@@ -346,7 +346,8 @@ int __init mp3_init(void)
     delay = msecs_to_jiffies(1000/20);
 
     // allocate the shared memory buffer
-    // memset(mem_buffer, -1, PAGE_NUM * PAGE_SIZE);
+    mem_index = -1;
+    memset(mem_buffer, -1, PAGE_NUM * PAGE_SIZE);
 
     // //allocate CDD number range
 	// alloc_chrdev_region(&mp3_cdev_num, 0, 1, "mp3_cdev");	
