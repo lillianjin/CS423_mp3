@@ -268,55 +268,55 @@ static const struct file_operations file_fops = {
 
 
 // function in character device driver
-static int mp3_open(struct inode *inode, struct file *file){
-    printk(KERN_INFO "CDD OPEN\n");
-    return 0;
-}
+// static int mp3_open(struct inode *inode, struct file *file){
+//     printk(KERN_INFO "CDD OPEN\n");
+//     return 0;
+// }
 
-static int mp3_release(struct inode *inode, struct file *file){
-    printk(KERN_INFO "CDD CLOSED\n");
-    return 0;
-}
+// static int mp3_release(struct inode *inode, struct file *file){
+//     printk(KERN_INFO "CDD CLOSED\n");
+//     return 0;
+// }
 
-static int mp3_mmap(struct file *file, struct vm_area_struct *vm_area){
-    int count = 0;
-    unsigned long pfn;
-    unsigned long length = (unsigned long)(vm_area->vm_end - vm_area->vm_start);
-    unsigned long vm_start = (unsigned long)(vm_area->vm_start);
+// static int mp3_mmap(struct file *file, struct vm_area_struct *vm_area){
+//     int count = 0;
+//     unsigned long pfn;
+//     unsigned long length = (unsigned long)(vm_area->vm_end - vm_area->vm_start);
+//     unsigned long vm_start = (unsigned long)(vm_area->vm_start);
 
-    printk(KERN_INFO "CDD MMAP BEGINS\n");
+//     printk(KERN_INFO "CDD MMAP BEGINS\n");
 
-    //check if the userspace is beyong the buffer size
-    if(length > PAGE_NUM * PAGE_SIZE){
-        printk(KERN_INFO "BUFFER LENGTH EXCEEDED");
-        return -EIO;
-    }
+//     //check if the userspace is beyong the buffer size
+//     if(length > PAGE_NUM * PAGE_SIZE){
+//         printk(KERN_INFO "BUFFER LENGTH EXCEEDED");
+//         return -EIO;
+//     }
 
-    //map each pages of the buffer into virtual memory
-    while(length > 0){
-        printk(KERN_INFO "MAPPING FOR PAGE %d BEGINS\n", count);
-        // get page frame number
-        pfn = vmalloc_to_pfn((char *)(mem_buffer) + count * PAGE_SIZE);
-        if(remap_pfn_range(vm_area, vm_start + count * PAGE_SIZE, pfn, PAGE_SIZE, PAGE_SHARED)){
-            printk(KERN_INFO "REMAPPING FAILED\n");
-            return -1;
-        }
-        printk(KERN_INFO "REMAPPING SUCCESSED\n");
-        count++;
-        length -= PAGE_SIZE;
-    }
-    printk(KERN_INFO "CDD MMAP FINISHED\n");
+//     //map each pages of the buffer into virtual memory
+//     while(length > 0){
+//         printk(KERN_INFO "MAPPING FOR PAGE %d BEGINS\n", count);
+//         // get page frame number
+//         pfn = vmalloc_to_pfn((char *)(mem_buffer) + count * PAGE_SIZE);
+//         if(remap_pfn_range(vm_area, vm_start + count * PAGE_SIZE, pfn, PAGE_SIZE, PAGE_SHARED)){
+//             printk(KERN_INFO "REMAPPING FAILED\n");
+//             return -1;
+//         }
+//         printk(KERN_INFO "REMAPPING SUCCESSED\n");
+//         count++;
+//         length -= PAGE_SIZE;
+//     }
+//     printk(KERN_INFO "CDD MMAP FINISHED\n");
 
-    return 0;
-}
+//     return 0;
+// }
 
-// Declare the character device driver
-static const struct file_operations mmap_fops = {
-    .owner = THIS_MODULE,
-    .open = mp3_open,
-    .release = mp3_release,
-    .mmap = mp3_mmap,
-};
+// // Declare the character device driver
+// static const struct file_operations mmap_fops = {
+//     .owner = THIS_MODULE,
+//     .open = mp3_open,
+//     .release = mp3_release,
+//     .mmap = mp3_mmap,
+// };
 
 // mp3_init - Called when module is loaded
 int __init mp3_init(void)
