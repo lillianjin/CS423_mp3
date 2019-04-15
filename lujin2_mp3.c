@@ -268,55 +268,55 @@ static const struct file_operations file_fops = {
 
 
 // function in character device driver
-// static int mp3_open(struct inode *inode, struct file *file){
-//     printk(KERN_INFO "CDD OPEN\n");
-//     return 0;
-// }
+static int mp3_open(struct inode *inode, struct file *file){
+    printk(KERN_INFO "CDD OPEN\n");
+    return 0;
+}
 
-// static int mp3_release(struct inode *inode, struct file *file){
-//     printk(KERN_INFO "CDD CLOSED\n");
-//     return 0;
-// }
+static int mp3_release(struct inode *inode, struct file *file){
+    printk(KERN_INFO "CDD CLOSED\n");
+    return 0;
+}
 
-// static int mp3_mmap(struct file *file, struct vm_area_struct *vm_area){
-//     int count = 0;
-//     unsigned long pfn;
-//     unsigned long length = (unsigned long)(vm_area->vm_end - vm_area->vm_start);
-//     unsigned long vm_start = (unsigned long)(vm_area->vm_start);
+static int mp3_mmap(struct file *file, struct vm_area_struct *vm_area){
+    int count = 0;
+    unsigned long pfn;
+    unsigned long length = (unsigned long)(vm_area->vm_end - vm_area->vm_start);
+    unsigned long vm_start = (unsigned long)(vm_area->vm_start);
 
-//     printk(KERN_INFO "CDD MMAP BEGINS\n");
+    printk(KERN_INFO "CDD MMAP BEGINS\n");
 
-//     //check if the userspace is beyong the buffer size
-//     if(length > PAGE_NUM * PAGE_SIZE){
-//         printk(KERN_INFO "BUFFER LENGTH EXCEEDED");
-//         return -EIO;
-//     }
+    //check if the userspace is beyong the buffer size
+    if(length > PAGE_NUM * PAGE_SIZE){
+        printk(KERN_INFO "BUFFER LENGTH EXCEEDED");
+        return -EIO;
+    }
 
-//     //map each pages of the buffer into virtual memory
-//     while(length > 0){
-//         printk(KERN_INFO "MAPPING FOR PAGE %d BEGINS\n", count);
-//         // get page frame number
-//         pfn = vmalloc_to_pfn((char *)(mem_buffer) + count * PAGE_SIZE);
-//         if(remap_pfn_range(vm_area, vm_start + count * PAGE_SIZE, pfn, PAGE_SIZE, PAGE_SHARED)){
-//             printk(KERN_INFO "REMAPPING FAILED\n");
-//             return -1;
-//         }
-//         printk(KERN_INFO "REMAPPING SUCCESSED\n");
-//         count++;
-//         length -= PAGE_SIZE;
-//     }
-//     printk(KERN_INFO "CDD MMAP FINISHED\n");
+    //map each pages of the buffer into virtual memory
+    while(length > 0){
+        printk(KERN_INFO "MAPPING FOR PAGE %d BEGINS\n", count);
+        // get page frame number
+        pfn = vmalloc_to_pfn((char *)(mem_buffer) + count * PAGE_SIZE);
+        if(remap_pfn_range(vm_area, vm_start + count * PAGE_SIZE, pfn, PAGE_SIZE, PAGE_SHARED)){
+            printk(KERN_INFO "REMAPPING FAILED\n");
+            return -1;
+        }
+        printk(KERN_INFO "REMAPPING SUCCESSED\n");
+        count++;
+        length -= PAGE_SIZE;
+    }
+    printk(KERN_INFO "CDD MMAP FINISHED\n");
 
-//     return 0;
-// }
+    return 0;
+}
 
-// // Declare the character device driver
-// static const struct file_operations mmap_fops = {
-//     .owner = THIS_MODULE,
-//     .open = mp3_open,
-//     .release = mp3_release,
-//     .mmap = mp3_mmap,
-// };
+// Declare the character device driver
+static const struct file_operations mmap_fops = {
+    .owner = THIS_MODULE,
+    .open = mp3_open,
+    .release = mp3_release,
+    .mmap = mp3_mmap,
+};
 
 // mp3_init - Called when module is loaded
 int __init mp3_init(void)
@@ -352,7 +352,7 @@ int __init mp3_init(void)
     // cdev_init(mp3_cdev, &mmap_fops);
     // printk(KERN_ALERT "5555555555555\n");
 	// cdev_add(mp3_cdev, mp3_cdev_num, 1);
-    // major = register_chrdev(0, "mp3_chrdev", &mmap_fops);
+    major = register_chrdev(0, "mp3_chrdev", &mmap_fops);
     printk(KERN_ALERT "major is %d\n", major);
 
     printk(KERN_ALERT "MP3 MODULE LOADED\n");
@@ -389,7 +389,7 @@ void __exit mp3_exit(void)
     // destroy character device
     // unregister_chrdev_region(mp3_cdev_num, 1);
     // cdev_del(mp3_cdev);
-    // unregister_chrdev(major,"mp3_chrdev");
+    unregister_chrdev(major,"mp3_chrdev");
 
     /*
     remove /proc/mp3/status and /proc/mp3 using remove_proc_entry(*name, *parent)
