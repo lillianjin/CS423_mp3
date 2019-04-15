@@ -7,7 +7,7 @@ RM:=rm
 
 .PHONY : clean
 
-all: clean modules app1 app21
+all: clean modules app1 app2
 
 obj-m:= lujin2_mp3.o
 
