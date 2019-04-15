@@ -341,16 +341,17 @@ int __init mp3_init(void)
     memset(mem_buffer, -1, PAGE_NUM * PAGE_SIZE);
     printk(KERN_ALERT "222222222222\n");
 
-    //allocate CDD number range
-	alloc_chrdev_region(&mp3_cdev_num, 0, 1, "mp3_cdev");	
-    printk(KERN_ALERT "3333333333333\n");
-	mp3_cdev = cdev_alloc();
-    printk(KERN_ALERT "444444444444444\n");
+    // //allocate CDD number range
+	// alloc_chrdev_region(&mp3_cdev_num, 0, 1, "mp3_cdev");	
+    // printk(KERN_ALERT "3333333333333\n");
+	// mp3_cdev = cdev_alloc();
+    // printk(KERN_ALERT "444444444444444\n");
 
     // initialize CDD
-    cdev_init(mp3_cdev, &mmap_fops);
-    printk(KERN_ALERT "5555555555555\n");
-	cdev_add(mp3_cdev, mp3_cdev_num, 1);
+    // cdev_init(mp3_cdev, &mmap_fops);
+    // printk(KERN_ALERT "5555555555555\n");
+	// cdev_add(mp3_cdev, mp3_cdev_num, 1);
+    register_chrdev(0, "mp3_chrdev", &mmap_fops);
     printk(KERN_ALERT "66666666666666666666\n");
 
     printk(KERN_ALERT "MP3 MODULE LOADED\n");
@@ -385,8 +386,9 @@ void __exit mp3_exit(void)
     vfree(mem_buffer);
 
     // destroy character device
-    unregister_chrdev_region(mp3_cdev_num, 1);
-    cdev_del(mp3_cdev);
+    // unregister_chrdev_region(mp3_cdev_num, 1);
+    // cdev_del(mp3_cdev);
+    unregister_chrdev(0,"mp3_chrdev");
 
     /*
     remove /proc/mp3/status and /proc/mp3 using remove_proc_entry(*name, *parent)
