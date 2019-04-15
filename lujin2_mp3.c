@@ -348,7 +348,7 @@ int __init mp3_init(void)
 
     // allocate the shared memory buffer
     mem_index = 0;
-    memset(mem_buffer, -1, PAGE_NUM * PAGE_SIZE);
+    // memset(mem_buffer, -1, PAGE_NUM * PAGE_SIZE);
 
     while (i < PAGE_NUM * PAGE_SIZE) {
         SetPageReserved(vmalloc_to_page((void *)((unsigned long)mem_buffer + i)));
