@@ -351,7 +351,7 @@ int __init mp3_init(void)
     memset(mem_buffer, -1, PAGE_NUM * PAGE_SIZE);
 
     while (i < PAGE_NUM * PAGE_SIZE) {
-        SetPageReserved(vmalloc_to_page((void *)(mem_buffer + i)));
+        SetPageReserved(vmalloc_to_page((void *)((unsigned long)mem_buffer + i)));
         i += PAGE_SIZE;
     }
 
