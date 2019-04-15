@@ -334,9 +334,19 @@ int __init mp3_init(void)
 
     // Initialize workqueue
     work_queue = create_workqueue("work_queue");
+    delay = msecs_to_jiffies(50);
 
     // allocate the shared memory buffer
-    memset(mem_buffer, 0, PAGE_NUM * PAGE_SIZE);
+    memset(mem_buffer, -1, PAGE_NUM * PAGE_SIZE);
+    if( !mem_buf ) 
+    {
+        printk("VMALLOC ERROR\n");
+    }
+    printk("mem_buf is %x\n", mem_buf);
+
+    if (mem_buf == NULL) {
+        printk("WTF: mem_buff is NULL\n");
+    }
 
     //allocate CDD number range
 	alloc_chrdev_region(&mp3_cdev_num, 0, 1, "mp3_cdev");	
