@@ -57,7 +57,7 @@ static void work_handler(struct work_struct *work);
 DECLARE_DELAYED_WORK(mp3_delayed_work, work_handler);
 // Declare memory buffer
 unsigned long * mem_buffer;
-int mem_index;
+int mem_index=0;
 // Declare character device driver
 // static struct cdev *mp3_cdev;
 int major = 0;
@@ -134,6 +134,7 @@ static void mp3_register(unsigned int pid) {
         printk("Start creating a new workqueue job.\n");
         // allocate the shared memory buffer
         memset(mem_buffer, -1, PAGE_NUM * PAGE_SIZE);
+        mem_index = 0;
         queue_delayed_work(work_queue, &mp3_delayed_work, delay);
         printk("Complete creating a new workqueue job.\n");
     }
