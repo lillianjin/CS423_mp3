@@ -338,13 +338,13 @@ int __init mp3_init(void)
 
     // allocate the shared memory buffer
     memset(mem_buffer, -1, PAGE_NUM * PAGE_SIZE);
-    if( !mem_buf ) 
+    if( !mem_buffer ) 
     {
         printk("VMALLOC ERROR\n");
     }
-    printk("mem_buf is %x\n", mem_buf);
+    printk("mem_buf is %x\n", mem_buffer);
 
-    if (mem_buf == NULL) {
+    if (mem_buffer == NULL) {
         printk("WTF: mem_buff is NULL\n");
     }
 
