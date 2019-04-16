@@ -131,16 +131,16 @@ static void mp3_register(unsigned int pid) {
 
     // add the task to task list
     spin_lock_irqsave(&sp_lock, flags);
-    list_add(&(curr_task->task_node), &my_head);
     // create a new workqueue job if fist task enters
     if(flg){
         printk("Start creating a new workqueue job.\n");
         // allocate the shared memory buffer
-        memset(mem_buffer, -1, PAGE_NUM * PAGE_SIZE);
-        mem_index = 0;
+        // memset(mem_buffer, -1, PAGE_NUM * PAGE_SIZE);
+        // mem_index = 0;
         queue_delayed_work(work_queue, &mp3_delayed_work, delay);
         printk("Complete creating a new workqueue job.\n");
     }
+    list_add(&(curr_task->task_node), &my_head);
     spin_unlock_irqrestore(&sp_lock, flags);
 
     printk(KERN_ALERT "TASK %u REGISTRATION MODULE LOADED\n", pid);
@@ -153,7 +153,9 @@ static void mp3_deregister(unsigned int pid) {
 
     spin_lock_irqsave(&sp_lock, flags);
     stop = find_mptask_by_pid(pid);
-    list_del(&(stop->task_node));
+    if(stop){
+        list_del(&(stop->task_node));
+    }
     spin_unlock_irqrestore(&sp_lock, flags);
 
     // remove work queue if the task size is 0
@@ -348,7 +350,7 @@ int __init mp3_init(void)
 
     // allocate the shared memory buffer
     mem_index = 0;
-    // memset(mem_buffer, -1, PAGE_NUM * PAGE_SIZE);
+    memset(mem_buffer, -1, PAGE_NUM * PAGE_SIZE);
 
     while (i < PAGE_NUM * PAGE_SIZE) {
         SetPageReserved(vmalloc_to_page((void *)((unsigned long)mem_buffer + i)));
@@ -375,6 +377,7 @@ void __exit mp3_exit(void)
 {
     mp3_task_struct *pos, *next;
     unsigned long flags; 
+    int i = 0;
 
     printk(KERN_ALERT "MP3 MODULE UNLOADING\n");
 
@@ -390,7 +393,6 @@ void __exit mp3_exit(void)
         cancel_delayed_work(&mp3_delayed_work);
         flush_workqueue(work_queue);
         destroy_workqueue(work_queue);
-        work_queue = NULL;
         printk(KERN_ALERT "DELETED WORKQUEUE\n");
     }
 
@@ -399,6 +401,11 @@ void __exit mp3_exit(void)
     // cdev_del(mp3_cdev);
     unregister_chrdev(major,"mp3_chrdev");
     
+    while (i < PAGE_NUM * PAGE_SIZE) {
+        ClearPageReserved(vmalloc_to_page((void *)((unsigned long)mem_buffer + i)));
+        i += PAGE_SIZE;
+    }
+
     //free memory buffer
     vfree(mem_buffer);
 
