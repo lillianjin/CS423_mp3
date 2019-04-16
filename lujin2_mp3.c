@@ -27,7 +27,7 @@ MODULE_DESCRIPTION("CS-423 MP3");
 #define DIRECTORY "mp3"
 #define FILENAME "status"
 #define REGISTRATION 'R'
-#define DEREGISTRATION 'D'
+#define DEREGISTRATION 'U'
 #define PAGE_NUM 128
 
 /*
