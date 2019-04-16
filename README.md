@@ -88,9 +88,9 @@ We run 1 time, 5 times and 11 times of process 5 to analyse cpu usage in this st
 
 The average utilization in the plot is calculated by summing up the utlization and cpu time (in jiffies) for all processes and divides it by the total computing time (in jiffies).
 
-With the increase of the degree of multiprogramming (1, 5, 11， 20, 22), the plot shows that the CPU utilization will increases exponentially first and than decrease because of thrashing. 
+With the increase of the degree of multiprogramming (1, 5, 11, 20, 22), the plot shows that the CPU utilization will increases exponentially first and than decrease because of thrashing. 
 
-It is obvious that CPU utilization can be improved by using multiprogramming. This exponential increase in utilization can be proofed by equations. If there is one process in memory, the CPU utilization is (1-P), while if there are N processes in memory, the probability of N processes waiting for an I/O is $P^N$ and the CPU utilization is ($1 - P^N$ ). As N increases, the CPU utilization increases.
+It is obvious that CPU utilization can be improved by using multiprogramming. This exponential increase in utilization can be proofed by equations. If there is one process in memory, the CPU utilization is (1-P), while if there are N processes in memory, the probability of N processes waiting for an I/O is P^N and the CPU utilization is (1 - P^N ). As N increases, the CPU utilization increases.
 
 might result from the increasing number of page fault counts caused by more processes. 
 
