@@ -57,7 +57,7 @@ static void work_handler(struct work_struct *work);
 DECLARE_DELAYED_WORK(mp3_delayed_work, work_handler);
 // Declare memory buffer
 unsigned long * mem_buffer;
-int mem_index;
+int mem_index = 0;
 // Declare character device driver
 // static struct cdev *mp3_cdev;
 int major = 0;
@@ -153,14 +153,14 @@ static void mp3_deregister(unsigned int pid) {
 
     spin_lock_irqsave(&sp_lock, flags);
     stop = find_mptask_by_pid(pid);
-    if(stop){
+    if(stop != NULL){
         list_del(&(stop->task_node));
     }
     spin_unlock_irqrestore(&sp_lock, flags);
 
     // remove work queue if the task size is 0
     if (list_empty(&my_head)){
-        cancel_delayed_work_sync(&mp3_delayed_work);
+        cancel_delayed_work(&mp3_delayed_work);
         flush_workqueue(work_queue);
     }
 
