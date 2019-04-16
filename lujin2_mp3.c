@@ -332,6 +332,7 @@ static const struct file_operations mmap_fops = {
 int __init mp3_init(void)
 {
     int i = 0;
+    dev_t dev;
     mem_buffer = (unsigned long *)vmalloc(PAGE_NUM * PAGE_SIZE);
     printk(KERN_ALERT "MP3 MODULE LOADING\n");
 
@@ -358,12 +359,12 @@ int __init mp3_init(void)
     }
 
     // //allocate CDD number range
-	// alloc_chrdev_region(&mp3_cdev_num, 0, 1, "mp3_cdev");	
+	alloc_chrdev_region(&dev, 0, 1, "mp3_cdev");	
 	// mp3_cdev = cdev_alloc();
 
     // initialize CDD
-    // cdev_init(mp3_cdev, &mmap_fops);
-	// cdev_add(mp3_cdev, mp3_cdev_num, 1);
+    cdev_init(&mp3_cdev, &mmap_fops);
+	cdev_add(&mp3_cdev, dev, 1);
     major = register_chrdev(0, "mp3_chrdev", &mmap_fops);
     printk(KERN_ALERT "major is %d\n", major);
 
@@ -378,6 +379,7 @@ void __exit mp3_exit(void)
     mp3_task_struct *pos, *next;
     unsigned long flags; 
     int i = 0;
+    dev_t dev;
 
     printk(KERN_ALERT "MP3 MODULE UNLOADING\n");
 
@@ -397,9 +399,11 @@ void __exit mp3_exit(void)
     }
 
     // destroy character device
-    // unregister_chrdev_region(mp3_cdev_num, 1);
-    // cdev_del(mp3_cdev);
-    unregister_chrdev(major,"mp3_chrdev");
+    dev = mp3_cdev.dev;
+    cdev_del(&mp3_cdev);
+    // unregister_chrdev(major,"mp3_chrdev");
+    unregister_chrdev_region(dev, 1);
+
     
     while (i < PAGE_NUM * PAGE_SIZE) {
         ClearPageReserved(vmalloc_to_page((void *)((unsigned long)mem_buffer + i)));
