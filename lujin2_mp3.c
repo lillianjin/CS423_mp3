@@ -59,7 +59,7 @@ DECLARE_DELAYED_WORK(mp3_delayed_work, work_handler);
 unsigned long * mem_buffer;
 int mem_index = 0;
 // Declare character device driver
-// static struct cdev *mp3_cdev;
+static struct cdev mp3_cdev;
 int major = 0;
 
 /*
