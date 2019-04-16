@@ -76,6 +76,9 @@ mp3_task_struct* find_mptask_by_pid(unsigned long pid)
     return NULL;
 }
 
+/*
+ work handler function
+*/
 static void work_handler(struct work_struct *work){
     unsigned long minor_flt, major_flt, utilize, ctime;
     unsigned long tot_minor_flt = 0, tot_major_flt = 0, tot_ctime = 0;
