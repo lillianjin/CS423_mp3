@@ -9,7 +9,7 @@ RM:=rm
 
 all: clean modules app1 app2
 
-obj-m:= lujin2_mp3.o
+obj-m:= lujin2_MP3.o
 
 modules:
 	$(MAKE) -C $(KERNEL_SRC) M=$(SUBDIR) modules
