@@ -118,6 +118,9 @@ static void work_handler(struct work_struct *work){
     printk(KERN_ALERT "WORK HANDLER FINISH WORKING");
 }
 
+/*
+    register process
+*/
 static void mp3_register(unsigned int pid) {
     mp3_task_struct *curr_task = (mp3_task_struct *)kmalloc(sizeof(mp3_task_struct), GFP_KERNEL);
     unsigned long flags; 
